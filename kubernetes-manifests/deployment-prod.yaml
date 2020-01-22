@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper
+  labels:
+    app: zookeeper
+    version: v1
+    group: zoo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+      group: zoo
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+        group: zoo
+        version: v1
+    spec:
+      containers:
+      - name: zookeeper
+        imagePullPolicy: Always
+        image: zookeeper
+        # livenessProbe:
+        #   httpGet:
+        #     path: /healthz
+        #     port: 3000
+        #   initialDelaySeconds: 3
+        #   periodSeconds: 5
+        #   failureThreshold: 3
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: MONGO_USER
+          value: "root"
+        - name: MONGO_PW
+          value: "example"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+spec:
+  selector:
+    app: zookeeper
+    group: zoo
+    version: v1
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 3000 
+    name: http

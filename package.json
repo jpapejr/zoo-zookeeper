@@ -1,0 +1,27 @@
+{
+  "name": "zoo-zookeeper",
+  "version": "1.0.0",
+  "description": "Guy responsible for keeping track of who's in the zoo.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "if [[ -e $DEBUG ]]; then nodemon /app/src/index.js; else nodemon --inspect /app/src/index.js; fi"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jpapejr/zoo-zookeeper.git"
+  },
+  "author": "John Pape",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/jpapejr/zoo-zookeeper/issues"
+  },
+  "homepage": "https://github.com/jpapejr/zoo-zookeeper#readme",
+  "dependencies": {
+    "express": "4.17.1",
+    "mongodb": "3.5.2"
+  },
+  "devDependencies": {
+    "nodemon": "2.0.2"
+  }
+}
