@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "if [[ -e $DEBUG ]]; then nodemon /app/src/index.js; else nodemon --inspect /app/src/index.js; fi"
+    "start": "node src/index.js"
   },
   "repository": {
     "type": "git",
