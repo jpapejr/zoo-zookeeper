@@ -1,0 +1,9 @@
+{
+    "name": "tiger",
+    "actions": [
+        "action 1",
+        "action 2",
+        "action 3"
+    ],
+    "imgurl": "http://url.to.image/of/animal.jpg"
+}
