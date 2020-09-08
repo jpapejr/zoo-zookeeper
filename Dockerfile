@@ -5,6 +5,6 @@ COPY package.json /app/package.json
 COPY /src /app/src
 WORKDIR /app
 
-RUN npm install 
+RUN chmod go+w -R /app; npm install 
 
 ENTRYPOINT ["npm", "start"]
