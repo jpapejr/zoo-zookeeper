@@ -7,6 +7,7 @@ const app = express()
 const port = 3000
 
  app.use(express.json())
+ app.use('/model', express.static('model'))
 
 // get the db connection up and ready
 const client = new MongoClient(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PW}@zookeeper-mongo:27017`, { useNewUrlParser: true, useUnifiedTopology: true, poolSize: 20, keepAlive: 300000, socketTimeoutMS: 480000 })
@@ -37,7 +38,7 @@ app.post('/animal', (req,res) => {
     if (req.body){
         client.db('admin').collection('animals').insertOne(req.body, (err, result) => {
             if (!err) { 
-                console.log(`Insert new animal: ${result}`)
+                console.log(`Insert new animal: ${req.body} --> ${result}`)
                 res.status(201).send('OK')
             } else {
                 res.status(500).send(err.message)
@@ -67,6 +68,22 @@ app.delete('/animal/:id', (req,res) => {
     }
 })
 
+app.get('/animal/:id', (req,res) => {
+    if (req.params.id){
+        client.db('admin').collection('animals').findOne({ _id : new ObjectId(req.params.id) }, (err, result) => {
+            if (!err){
+                console.log(`Fetched animal with id: ${req.params.id}`)
+                res.status(200).send(JSON.stringify(result))
+            } else {
+                res.status(500).send(err.message)
+            }
+        })
+    } else {
+        console.log(`Animal fetch attemped with no id`)
+        res.status(400).send('Bad Request: EMPTY id')
+    }
+})
+
 // list the animal registrations known
 app.get('/animals', (req,res) => {
     const db = client.db('admin')
@@ -79,5 +96,6 @@ app.get('/animals', (req,res) => {
         }     
     })
 })
+
 
 app.listen(port, () => console.log(`Service up on port ${port}`));
