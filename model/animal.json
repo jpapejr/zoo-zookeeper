@@ -5,5 +5,6 @@
         "action 2",
         "action 3"
     ],
-    "imgurl": "http://url.to.image/of/animal.jpg"
+    "imgurl": "http://url.to.image/of/animal.jpg",
+    "endpoint": "tiger.zoo.svc.cluster.local"
 }
