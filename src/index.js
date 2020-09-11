@@ -3,14 +3,22 @@
 const express = require('express')
 const MongoClient = require('mongodb').MongoClient
 const ObjectId = require('mongodb').ObjectID
+const k8s = require('@kubernetes/client-node')
+const kc = new k8s.KubeConfig()
+kc.loadFromCluster() // gotta do this before making API clients below
+const k8sApi = kc.makeApiClient(k8s.CoreV1Api)
+const appApi = kc.makeApiClient(k8s.AppsV1Api)
 const app = express()
 const port = 3000
+const namespace = "zoo"
 
- app.use(express.json())
- app.use('/model', express.static('model'))
+
+
+app.use(express.json())
+app.use('/model', express.static('model'))
 
 // get the db connection up and ready
-const client = new MongoClient(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PW}@zookeeper-mongo:27017`, { useNewUrlParser: true, useUnifiedTopology: true, poolSize: 20, keepAlive: 300000, socketTimeoutMS: 480000 })
+const client = new MongoClient(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PW}@zookeeper-mongo-mongodb:27017`, { useNewUrlParser: true, useUnifiedTopology: true, poolSize: 20, keepAlive: 300000, socketTimeoutMS: 480000 })
 client.connect((err) => {
     if (err) {
         console.log(`Error connecting to db, we can't move on from this. Fix it: ${err.message}`)
@@ -39,9 +47,73 @@ app.post('/animal', (req,res) => {
         client.db('admin').collection('animals').insertOne(req.body, (err, result) => {
             if (!err) { 
                 console.log(`Insert new animal: ${req.body} --> ${result}`)
-                res.status(201).send('OK')
+                appApi.createNamespacedDeployment("zoo", {
+                    apiVersion: 'apps/v1',
+                    kind: 'Deployment',
+                    metadata: {
+                        name: `zoo-animal-${req.body._id}`,
+                        namespace: `${namespace}`,
+                        labels: {
+                            animal: `${req.body._id}`,
+                            type: `${req.body.name}`
+                            }
+                        },
+                    spec: {
+                        replicas: 1,
+                        selector: {
+                            matchLabels: {
+                                 animal: `${req.body._id}`
+                            }
+                        },
+                        template: {
+                            metadata: { labels:  { animal: `${req.body._id}`,  type: `${req.body.name}` }  },
+                            spec: {
+                                containers: [
+                                    {
+                                        name: 'animal',
+                                        image: 'jpapejr/http-animal:latest',
+                                        ports: [
+                                            {
+                                                containerPort: 5000
+                                            }
+                                        ],
+                                        env: [
+                                            {
+                                                name: 'ACTIONS',
+                                                value: `${req.body.actions[0]},${req.body.actions[1]},${req.body.actions[2]}`
+                                            },
+                                            {
+                                                name: 'NAME',
+                                                value: `${req.body.name}`
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }).then((res2) => {
+                    console.log(res2.body);
+                    res.status(201).json({
+                        status: 'OK',
+                        datastore: 'updated',
+                        k8s: 'updated'
+                    })
+                }).catch((err) => {
+                    console.log(err);
+                    res.status(201).json({
+                        status: 'OK',
+                        datastore: 'updated',
+                        k8s: 'failed'
+                    })
+                });
+                
             } else {
-                res.status(500).send(err.message)
+                res.status(500).json({
+                    status: 'OK',
+                    datastore: 'failed',
+                    k8s: 'not attempted'
+                })
             }
         })
     } else {
@@ -57,9 +129,27 @@ app.delete('/animal/:id', (req,res) => {
         client.db('admin').collection('animals').findOneAndDelete({ _id : new ObjectId(req.params.id) }, (err, result) => {
             if (!err){
                 console.log(`Deleted animal with id: ${req.params.id}`)
-                res.status(202).send('OK')
+                appApi.deleteNamespacedDeployment(`zoo-animal-${req.params.id}`, namespace).then((res2) => {
+                    console.log(res2.body.message)
+                    res.status(200).json({
+                        status: 'OK',
+                        datastore: 'updated',
+                        k8s: 'updated'
+                    })
+                }).catch((err) => {
+                    res.status(200).json({
+                        status: 'OK',
+                        datastore: 'updated',
+                        k8s: 'failed'
+                    })
+                });
+                
             } else {
-                res.status(500).send(err.message)
+                res.status(500).json({
+                    status: 'OK',
+                    datastore: 'failed',
+                    k8s: 'not attempted'
+                })
             }
         })
     } else {
