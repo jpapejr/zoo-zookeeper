@@ -1,0 +1,41 @@
+# Set up the Mutagen service and code volume before creating sessions.
+beforeCreate:
+  - mutagen tunnel create --name zookeeper > tunnel.tunn
+  - kubectl create secret generic zookeeper-tunnel --from-file=tunnel.tunn
+  - rm -f tunnel.tunn
+
+# Set up the main services after creating sessions. At this point, sessions will
+# have been established and code pushed to the shared volume.
+afterCreate:
+
+# Pause services after pausing sessions.
+afterPause:
+
+# Resume services before resume sessions.
+beforeResume:
+
+# Tear down all services and remove the code volume after terminating sessions.
+afterTerminate:
+  - mutagen tunnel terminate zookeeper
+
+# Define common utility commands.
+commands:
+
+# Forward local traffic .
+forward:
+  zookeeper-web:
+    source: "tcp::3000"
+    destination: "tunnel://zookeeper:tcp:localhost:3000"
+
+# Synchronize code.
+sync:
+  defaults:
+    flushOnCreate: true
+    ignore:
+      vcs: true
+  code:
+    alpha: "."
+    beta: "tunnel://zookeeper/code"
+    mode: "two-way-resolved"
+    ignore:
+      paths:
