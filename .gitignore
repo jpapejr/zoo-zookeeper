@@ -1,3 +1,4 @@
 
 node_modules/
 lost+found/
+mutagen.yml.lock
