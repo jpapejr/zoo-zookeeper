@@ -32,20 +32,20 @@ client.connect((err) => {
 app.get('/', (req, res) => res.send("Hi there! I'm the caretaker around here. Let me know if you need anything!"))
 
 //check the health of the app -> db connection
-app.get('/healthz', (req,res) => {
-    if ( client.isConnected()){
+app.get('/healthz', (req, res) => {
+    if (client.isConnected()) {
         res.status(200).send('OK')
     } else {
         res.status(500).send(`State was ${mongoose.connection.readyState} `)
     }
-  
+
 })
 
 // create an animal registration
-app.post('/animal', (req,res) => {
-    if (req.body){
+app.post('/animal', (req, res) => {
+    if (req.body) {
         client.db('admin').collection('animals').insertOne(req.body, (err, result) => {
-            if (!err) { 
+            if (!err) {
                 console.log(`Insert new animal: ${req.body} --> ${result}`)
                 appApi.createNamespacedDeployment("zoo", {
                     apiVersion: 'apps/v1',
@@ -56,17 +56,17 @@ app.post('/animal', (req,res) => {
                         labels: {
                             animal: `${req.body._id}`,
                             type: `${req.body.name}`
-                            }
-                        },
+                        }
+                    },
                     spec: {
                         replicas: 1,
                         selector: {
                             matchLabels: {
-                                 animal: `${req.body._id}`
+                                animal: `${req.body._id}`
                             }
                         },
                         template: {
-                            metadata: { labels:  { animal: `${req.body._id}`,  type: `${req.body.name}` }  },
+                            metadata: { labels: { animal: `${req.body._id}`, type: `${req.body.name}` } },
                             spec: {
                                 containers: [
                                     {
@@ -97,11 +97,45 @@ app.post('/animal', (req,res) => {
                         }
                     }
                 }).then((res2) => {
-                    console.log(res2.body);
-                    res.status(201).json({
-                        status: 'OK',
-                        datastore: 'updated',
-                        k8s: 'updated'
+                    k8sApi.createNamespacedService(namespace, {
+                        apiVersion: 'v1',
+                        kind: 'Service',
+                        metadata: {
+                            name: `zoo-animal-${req.body._id}`,
+                            namespace: `${namespace}`,
+                            labels: {
+                                animal: `${req.body._id}`
+                            }
+                        },
+                        spec: {
+                            ports: [
+                                {
+                                    name: 'web',
+                                    port: 5000,
+                                    protocol: 'TCP',
+                                    targetPort: 5000
+                                }
+                            ],
+                            selector: {
+                                animal: `${req.body._id}`
+                            },
+                            sessionAffinity: 'None',
+                            type: 'ClusterIP'
+                        }
+                    }).then((res3) => {
+                        console.log(res3.body);
+                        res.status(201).json({
+                            status: 'OK',
+                            datastore: 'updated',
+                            k8s: 'updated'
+                        })
+                    }).catch((err) => {
+                        console.log(err);
+                        res.status(201).json({
+                            status: 'OK',
+                            datastore: 'updated',
+                            k8s: 'failed'
+                        })
                     })
                 }).catch((err) => {
                     console.log(err);
@@ -110,8 +144,8 @@ app.post('/animal', (req,res) => {
                         datastore: 'updated',
                         k8s: 'failed'
                     })
-                });
-                
+                })
+
             } else {
                 res.status(500).json({
                     status: 'OK',
@@ -128,17 +162,19 @@ app.post('/animal', (req,res) => {
 })
 
 // remove an animal registration
-app.delete('/animal/:id', (req,res) => {
-    if (req.params.id){
-        client.db('admin').collection('animals').findOneAndDelete({ _id : new ObjectId(req.params.id) }, (err, result) => {
-            if (!err){
+app.delete('/animal/:id', (req, res) => {
+    if (req.params.id) {
+        client.db('admin').collection('animals').findOneAndDelete({ _id: new ObjectId(req.params.id) }, (err, result) => {
+            if (!err) {
                 console.log(`Deleted animal with id: ${req.params.id}`)
                 appApi.deleteNamespacedDeployment(`zoo-animal-${req.params.id}`, namespace).then((res2) => {
-                    console.log(res2.body.message)
-                    res.status(200).json({
-                        status: 'OK',
-                        datastore: 'updated',
-                        k8s: 'updated'
+                    k8sApi.deleteNamespacedService(`zoo-animal-${req.params.id}`, namespace).then((res3) => {
+                        console.log(res3.body.message)
+                        res.status(200).json({
+                            status: 'OK',
+                            datastore: 'updated',
+                            k8s: 'updated'
+                        })
                     })
                 }).catch((err) => {
                     res.status(200).json({
@@ -147,7 +183,7 @@ app.delete('/animal/:id', (req,res) => {
                         k8s: 'failed'
                     })
                 });
-                
+
             } else {
                 res.status(500).json({
                     status: 'OK',
@@ -162,10 +198,10 @@ app.delete('/animal/:id', (req,res) => {
     }
 })
 
-app.get('/animal/:id', (req,res) => {
-    if (req.params.id){
-        client.db('admin').collection('animals').findOne({ _id : new ObjectId(req.params.id) }, (err, result) => {
-            if (!err){
+app.get('/animal/:id', (req, res) => {
+    if (req.params.id) {
+        client.db('admin').collection('animals').findOne({ _id: new ObjectId(req.params.id) }, (err, result) => {
+            if (!err) {
                 console.log(`Fetched animal with id: ${req.params.id}`)
                 res.status(200).send(JSON.stringify(result))
             } else {
@@ -179,15 +215,15 @@ app.get('/animal/:id', (req,res) => {
 })
 
 // list the animal registrations known
-app.get('/animals', (req,res) => {
+app.get('/animals', (req, res) => {
     const db = client.db('admin')
     db.collection('animals').find({}).toArray((err, docs) => {
-        if (err) { 
+        if (err) {
             res.status(500).send(err.message)
             console.error(`Error: ${err.message}`)
-        } else { 
+        } else {
             res.send(docs)
-        }     
+        }
     })
 })
 
