@@ -7,7 +7,6 @@
     ],
     "containerImage": "jpapejr/http-animal:latest",
     "imgurl": "http://url.to.image/of/animal.jpg",
-    "endpoint": "tiger.zoo.svc.cluster.local",
     "childEndpoint": "",
     "parentEndpoint": ""
 }
