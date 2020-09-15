@@ -85,6 +85,10 @@ app.post('/animal', (req,res) => {
                                             {
                                                 name: 'NAME',
                                                 value: `${req.body.name}`
+                                            },
+                                            {
+                                                name: 'IMGURL',
+                                                value: `${req.body.imgurl}`
                                             }
                                         ]
                                     }
