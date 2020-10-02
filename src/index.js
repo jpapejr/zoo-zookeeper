@@ -18,7 +18,7 @@ app.use(express.json())
 app.use('/model', express.static('model'))
 
 // get the db connection up and ready
-const client = new MongoClient(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PW}@zookeeper-mongo-mongodb:27017`, { useNewUrlParser: true, useUnifiedTopology: true, poolSize: 20, keepAlive: 300000, socketTimeoutMS: 480000 })
+const client = new MongoClient(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PW}@zookeeper-mongo:27017`, { useNewUrlParser: true, useUnifiedTopology: true, poolSize: 20, keepAlive: 300000, socketTimeoutMS: 480000 })
 client.connect((err) => {
     if (err) {
         console.log(`Error connecting to db, we can't move on from this. Fix it: ${err.message}`)

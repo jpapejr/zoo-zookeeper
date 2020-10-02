@@ -1,0 +1,20 @@
+apiVersion: skaffold/v1
+kind: Config
+metadata:
+  name: zoo-zookeeper
+build:
+  local:
+    useBuildkit: false
+    useDockerCLI: false
+  artifacts:
+    - image: zookeeper
+      context: .
+      # sync:
+      #   manual:
+      #   - src: "src/*.js"
+      #     dest: "/app"
+deploy:
+  kubectl:
+    manifests:
+      - kubernetes-manifests/deployment-dev.yaml
+      - kubernetes-manifests/deployment-mongo.yaml
